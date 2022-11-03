@@ -79,9 +79,13 @@ def post_process_content(book_slug, content, out):
     def move_and_replace_img(match):
         alt = match[1]
         old_file_name = match[2]
+        old_file_name = old_file_name.split(')')[0] # an ugly hack, as this group extends to the last ')' of the line. Better solution is to reduce greedyness
         file_name = new_img_filename(old_file_name)
-        if not os.path.isfile(f'{out}/{book_slug}/{file_name}'):
-            shutil.copyfile(old_file_name, f'{out}/{book_slug}/{file_name}')
+        try:
+            if not os.path.isfile(f'{out}/{book_slug}/{file_name}'):
+                shutil.copyfile(old_file_name, f'{out}/{book_slug}/{file_name}')
+        except Exception as e:
+            print(e)
         return f'![{alt}]({file_name})' 
     content = re.sub(f'!\[(.*)\]\((.*)\)', move_and_replace_img, content)
 
