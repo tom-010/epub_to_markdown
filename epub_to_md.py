@@ -14,17 +14,17 @@ def main():
 
 
     path_to_markdown = epub_to_markdown(args.epub, args.out)
-    post_process(path_to_markdown)
+    post_process(path_to_markdown, args.out)
 
 
-def post_process_content(book_slug, content):
+def post_process_content(book_slug, content, out):
     nlp = spacy.load("en_core_web_sm")
   
     # remove <div>
     content = re.sub(r'<\/?div.*>', '', content)
 
     # unify symbols
-    content = content.replace("`", "'").replace("´", "'").replace("’", "'").replace('“', '"')
+    content = content.replace("`", "'").replace("´", "'").replace("’", "'").replace('“', '"').replace('”', '"')
     content = content.replace('\\$', '$').replace('\\.', '.')
 
     # remove junk
@@ -80,8 +80,8 @@ def post_process_content(book_slug, content):
         alt = match[1]
         old_file_name = match[2]
         file_name = new_img_filename(old_file_name)
-        if not os.path.isfile(f'out/{book_slug}/{file_name}'):
-            shutil.copyfile(old_file_name, f'out/{book_slug}/{file_name}')
+        if not os.path.isfile(f'{out}/{book_slug}/{file_name}'):
+            shutil.copyfile(old_file_name, f'{out}/{book_slug}/{file_name}')
         return f'![{alt}]({file_name})' 
     content = re.sub(f'!\[(.*)\]\((.*)\)', move_and_replace_img, content)
 
@@ -97,7 +97,7 @@ def epub_to_markdown(path_to_epub, out):
     book_name = path_to_name(path_to_epub)
     book_slug = slugify(book_name)
     markdown_parent_folder = f'{out}/{book_slug}'
-    os.makedirs(markdown_parent_folder, exist_ok=True)
+    os.makedirs(markdown_parent_folder, exist_ok=True, mode=0o555)
     markdown_path = f'{markdown_parent_folder}/{book_name}.md'
 
     # convert
@@ -123,12 +123,12 @@ def epub_to_markdown(path_to_epub, out):
         exit(1)
     return markdown_path
 
-def post_process(path_to_markdown):
+def post_process(path_to_markdown, out):
     with open(path_to_markdown) as f:
         content = f.read()
     book_name = path_to_name(path_to_markdown)
     book_slug = slugify(book_name)
-    content = post_process_content(book_slug, content)
+    content = post_process_content(book_slug, content, out)
     with open(path_to_markdown, 'w') as f:
         f.write(content)
 
