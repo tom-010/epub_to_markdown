@@ -17,15 +17,17 @@ def main():
     post_process(path_to_markdown, args.out)
 
 
-def post_process_content(book_slug, content, out):
+def post_process_content(book_slug, content, out, copy_images=True):
     nlp = spacy.load("en_core_web_sm")
   
     # remove <div>
     content = re.sub(r'<\/?div.*>', '', content)
 
     # unify symbols
-    content = content.replace("`", "'").replace("´", "'").replace("’", "'").replace('“', '"').replace('”', '"')
+    content = content.replace("`", "'").replace("´", "'").replace('‘', "'").replace("’", "'").replace('“', '"').replace('”', '"').replace('•', '-')
     content = content.replace('\\$', '$').replace('\\.', '.')
+
+    # too much whitespace at enumerations
 
     # remove junk
     content = re.sub(r"'''\{=html\}.*'''", '', content, flags=re.S)
@@ -36,8 +38,20 @@ def post_process_content(book_slug, content, out):
         return f'{s[0]} {s[1]}'
     content = re.sub(r'([^\n])\n([^\n])', r, content)
 
+    # line break lists
+    content = content.replace(' - ', '\n- ')
+
     # remove repeated line breaks
     content = re.sub(r'\n\n\n+', '\n\n', content)
+
+    # Remove internal links
+    content = re.sub(r'\[(.*)\]\(#(.*?)\)', lambda m: m[1], content)
+
+    # No formatting in header
+    content = re.sub(r'^#+ .*', lambda match: match[0].replace('*', '').replace('__', ''), content, flags=re.MULTILINE)
+
+    # No links in header
+    content = re.sub(r'^(#+ )\[(.*)\]\(.*\)', lambda m: m[1] + m[2], content, flags=re.MULTILINE)
 
     # add an addional line break before every heading
     content = re.sub(r'\n#+ ', lambda s: f'\n{s[0]}', content)
@@ -81,15 +95,19 @@ def post_process_content(book_slug, content, out):
         old_file_name = match[2]
         old_file_name = old_file_name.split(')')[0] # an ugly hack, as this group extends to the last ')' of the line. Better solution is to reduce greedyness
         file_name = new_img_filename(old_file_name)
-        try:
-            if not os.path.isfile(f'{out}/{book_slug}/{file_name}'):
-                shutil.copyfile(old_file_name, f'{out}/{book_slug}/{file_name}')
-        except Exception as e:
-            print(e)
+        if copy_images:
+            try:
+                if not os.path.isfile(f'{out}/{book_slug}/{file_name}'):
+                    shutil.copyfile(old_file_name, f'{out}/{book_slug}/{file_name}')
+            except Exception as e:
+                print(e)
         return f'![{alt}]({file_name})' 
     content = re.sub(f'!\[(.*)\]\((.*)\)', move_and_replace_img, content)
 
+    # Make headings not capslock
     content = re.sub(r'\n(#+) (.*)\n', lambda heading: '\n'+ heading[1] + ' ' + fix_case(heading[2]) + '\n', content)
+
+    
 
     return content 
 
@@ -101,7 +119,7 @@ def epub_to_markdown(path_to_epub, out):
     book_name = path_to_name(path_to_epub)
     book_slug = slugify(book_name)
     markdown_parent_folder = f'{out}/{book_slug}'
-    os.makedirs(markdown_parent_folder, exist_ok=True, mode=0o555)
+    os.makedirs(markdown_parent_folder, exist_ok=True)
     markdown_path = f'{markdown_parent_folder}/{book_name}.md'
 
     # convert
@@ -137,5 +155,17 @@ def post_process(path_to_markdown, out):
         f.write(content)
 
 
+def dev():
+    # path = 'in.epub'
+    # p = epub_to_markdown(path, 'out')
 
-main()
+    with open('out/in/in.md') as f:
+        content = f.read()
+
+    content = post_process_content('in', content, 'out.md', copy_images=False)
+
+    with open('out/in/out.md', 'w') as f:
+        f.write(content)
+
+#dev()
+# main()
