@@ -32,11 +32,11 @@ def post_process_content(book_slug, content, out, copy_images=True):
     # remove junk
     content = re.sub(r"'''\{=html\}.*'''", '', content, flags=re.S)
 
-    # no line breaks in paragraphs
-    def r(s):
-        s = s[0].split('\n')
-        return f'{s[0]} {s[1]}'
-    content = re.sub(r'([^\n])\n([^\n])', r, content)
+    # # no line breaks in paragraphs
+    # def r(s):
+    #     s = s[0].split('\n')
+    #     return f'{s[0]} {s[1]}'
+    # content = re.sub(r'([^\n])\n([^\n])', r, content)
 
     # line break lists
     content = content.replace(' - ', '\n- ')
@@ -128,6 +128,7 @@ def epub_to_markdown(path_to_epub, out):
         f'--data-dir=data',
         f'--read=EPUB',
         f'--write=markdown_mmd',
+        f'--wrap=none',
         f'--markdown-headings=atx',
         f'--top-level-division=chapter',
         f'--output={markdown_path}',
@@ -168,4 +169,4 @@ def dev():
         f.write(content)
 
 #dev()
-# main()
+main()

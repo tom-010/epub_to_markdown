@@ -8,7 +8,7 @@ dir_name=$(realpath "$dir_name")
 
 mkdir out 2> /dev/null || true 
 
-CONTAINER=tom010/epub_to_markdown
+CONTAINER="tom010/epub_to_markdown"
 
 docker run \
     -v $dir_name:/input \
